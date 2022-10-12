@@ -2,7 +2,7 @@
 <html>
 	<head>
 		
-<title>aio-socket-Quiet</title>
+<title>aio-socket-MDong</title>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
@@ -115,7 +115,7 @@
 	</div>
 	<div class="sidebar">
     <div class="topo">
-        <h2>Joey</h2>
+        <h2>MDong</h2>
     </div>
     <ul>
         
@@ -306,7 +306,7 @@
                             p-id="2902" fill="#ffffff"></path>
                     </svg>
                     
-                <span class="post-header-info-author-text"> <a target="_blank" rel="noopener" href="https://github.com/79E/hexo-theme-quiet">Cange-Q</a></span>
+                <span class="post-header-info-author-text"> <a target="_blank" rel="noopener" href="https://github.com/79E/hexo-theme-quiet">MDong</a></span>
                 <div class="post-header-info-author-categories">
                     
                          <a href="../../categories/通讯内核/" target="_blank" >通讯内核</a>
@@ -322,13 +322,141 @@
   <div id="article" class="post-content-info">
     
 
-    <pre><code class="maven">&lt;dependency&gt;
+    <h1 id="aio-socket-使用文档"><a href="#aio-socket-使用文档" class="headerlink" title="aio-socket 使用文档"></a>aio-socket 使用文档</h1><h2 id="快速开始"><a href="#快速开始" class="headerlink" title="快速开始"></a>快速开始</h2><p>IDEA 新建Maven空项目；file-&gt;new -&gt;maven -&gt; finish</p>
+<h3 id="引入Maven"><a href="#引入Maven" class="headerlink" title="引入Maven"></a>引入Maven</h3><pre><code>&lt;dependency&gt;
   &lt;groupId&gt;io.github.mxd888.socket&lt;/groupId&gt;
   &lt;artifactId&gt;aio-socket-kernel&lt;/artifactId&gt;
   &lt;version&gt;3.8.5.v20221001-RELEASE&lt;/version&gt;
 &lt;/dependency&gt;
 </code></pre>
-<pre><code class="java">package io.github.mxd888.socket.utils.queue;
+<h3 id="新建DemoPacket并继承Packet"><a href="#新建DemoPacket并继承Packet" class="headerlink" title="新建DemoPacket并继承Packet"></a>新建DemoPacket并继承Packet</h3><pre><code class="java">public class DemoPacket extends Packet &#123;
+
+    private String data;
+
+    public DemoPacket(String data) &#123;
+        this.data = data;
+    &#125;
+
+    public String getData() &#123;
+        return data;
+    &#125;
+
+    public void setData(String data) &#123;
+        this.data = data;
+    &#125;
+&#125;
+</code></pre>
+<h3 id="新建MyHandler并实现接口AioHandler"><a href="#新建MyHandler并实现接口AioHandler" class="headerlink" title="新建MyHandler并实现接口AioHandler"></a>新建MyHandler并实现接口AioHandler</h3><pre><code class="java">public class MyHandler implements AioHandler &#123;
+
+    @Override
+    public Packet handle(ChannelContext channelContext, Packet packet) &#123;
+        return null;
+    &#125;
+
+    @Override
+    public Packet decode(MemoryUnit memoryUnit, ChannelContext channelContext) &#123;
+        ByteBuffer buffer = memoryUnit.buffer();
+        int remaining = buffer.remaining();
+        if (remaining &lt; Integer.BYTES) &#123;
+            return null;
+        &#125;
+        buffer.mark();
+        int length = buffer.getInt();
+        byte[] b = AIOUtil.getBytesFromByteBuffer(length, memoryUnit, channelContext);
+        if (b == null) &#123;
+            buffer.reset();
+            return null;
+        &#125;
+        return new DemoPacket(new String(b));
+    &#125;
+
+    @Override
+    public void encode(Packet packet, ChannelContext channelContext) &#123;
+        if (packet instanceof DemoPacket) &#123;
+            DemoPacket demoPacket = (DemoPacket) packet;
+            WriteBuffer writeBuffer = channelContext.getWriteBuffer();
+            try &#123;
+                writeBuffer.writeInt(demoPacket.getData().getBytes().length);
+                writeBuffer.write(demoPacket.getData().getBytes());
+            &#125; catch (IOException e) &#123;
+                e.printStackTrace();
+            &#125;
+        &#125;
+    &#125;
+
+    @Override
+    public void stateEvent(ChannelContext channelContext, StateMachineEnum stateMachineEnum, Throwable throwable) &#123;
+        switch (stateMachineEnum)&#123;
+            case DECODE_EXCEPTION:
+                System.out.println(&quot;解码异常&quot;);
+                throwable.printStackTrace();
+                break;
+            case PROCESS_EXCEPTION:
+                System.out.println(&quot;处理异常&quot;);
+                break;
+            case INPUT_SHUTDOWN:
+                System.out.println(&quot;输入流已关闭&quot;);
+                break;
+            case REJECT_ACCEPT:
+                System.out.println(&quot;超过负载，拒绝连接&quot;);
+                break;
+            case CHANNEL_CLOSED:
+                System.out.println(&quot;TCPChannelContext 已经关闭&quot;);
+                break;
+            case INPUT_EXCEPTION:
+                System.out.println(&quot;INPUT_EXCEPTION 异常&quot;);
+                break;
+            case OUTPUT_EXCEPTION:
+                System.out.println(&quot;OUTPUT_EXCEPTION 异常&quot;);
+                break;
+        &#125;
+    &#125;
+&#125;
+</code></pre>
+<h3 id="新建ServerHandler并继承MyHandler"><a href="#新建ServerHandler并继承MyHandler" class="headerlink" title="新建ServerHandler并继承MyHandler"></a>新建ServerHandler并继承MyHandler</h3><pre><code class="java">public class ServerHandler extends MyHandler &#123;
+
+    @Override
+    public Packet handle(ChannelContext channelContext, Packet packet) &#123;
+        if (packet instanceof DemoPacket) &#123;
+            return packet;
+        &#125;
+        return null;
+    &#125;
+&#125;
+</code></pre>
+<h3 id="新建Server启动类"><a href="#新建Server启动类" class="headerlink" title="新建Server启动类"></a>新建Server启动类</h3><pre><code class="java">public static void main(String[] args) &#123;
+
+        ServerBootstrap bootstrap = new ServerBootstrap(&quot;localhost&quot;, 8888, new ServerHandler());
+        bootstrap.setMemoryPoolFactory(() -&gt; new MemoryPool(10 * 1024 * 1024, 10, true))
+                .setReadBufferSize(1024 * 1024)
+                .setWriteBufferSize(1024 * 4, 512)
+                .start();
+
+    &#125;
+</code></pre>
+<h3 id="新建ClientHandler并继承MyHandler"><a href="#新建ClientHandler并继承MyHandler" class="headerlink" title="新建ClientHandler并继承MyHandler"></a>新建ClientHandler并继承MyHandler</h3><pre><code class="java">public class ClientHandler extends MyHandler &#123;
+
+    @Override
+    public Packet handle(ChannelContext channelContext, Packet packet) &#123;
+        return null;
+    &#125;
+&#125;
+</code></pre>
+<h3 id="新建Client启动类"><a href="#新建Client启动类" class="headerlink" title="新建Client启动类"></a>新建Client启动类</h3><pre><code class="java">public class Client &#123;
+
+    public static void main(String[] args) throws IOException &#123;
+        DemoPacket demoPacket = new DemoPacket(&quot;hello aio-socket&quot;);
+        ClientBootstrap bootstrap = new ClientBootstrap(&quot;localhost&quot;, 8888, new ClientHandler());
+                bootstrap.setBufferFactory(() -&gt; new MemoryPool(32 * 1024 * 1024, 10, true))
+                        .setReadBufferSize(1024 * 1024)
+                        .setWriteBufferSize(1024 * 1024, 512);
+        ChannelContext start = bootstrap.start();
+        Aio.send(start, demoPacket);
+    &#125;
+&#125;
+</code></pre>
+<h2 id="高级使用"><a href="#高级使用" class="headerlink" title="高级使用"></a>高级使用</h2><p>aio-socket通过插件实现监听，自定义插件继承抽象插件即可</p>
+<h4 id="测试Java"><a href="#测试Java" class="headerlink" title="测试Java"></a>测试Java</h4><pre><code class="java">package io.github.mxd888.socket.utils.queue;
 
 import io.github.mxd888.socket.utils.ThreadUtils;
 import io.github.mxd888.socket.utils.pool.thread.AbstractQueueRunnable;
@@ -641,7 +769,7 @@ Fancybox.bind('[data-fancybox="fancybox-gallery-img"]', {
 		
 <div class="footer">
 	<div class="Copyright">
-		©2022 By Joey. 主题：<a
+		©2022 By MDong. 主题：<a
 			style="text-decoration: none;display: contents; color: #898F9F;"
 			target="_blank" rel="noopener" href="https://github.com/79e/hexo-theme-quiet">Quiet</a>
 	</div>
