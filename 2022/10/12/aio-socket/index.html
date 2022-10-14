@@ -12,8 +12,8 @@
 
 
 
-<meta name="keywords" content="Hexo,Quiet,主题,静态主题,">
-<meta name="description" content="采用简约大方的扁平化Hexo-Quiet主题">
+<meta name="keywords" content="AIO,通讯内核,性能小怪兽,TCP编程,Java网络编程,">
+<meta name="description" content="基于Java的怪兽级通讯内核">
 
 
 <script src="/js/jquery.min.js"></script>
@@ -284,13 +284,15 @@
         <ul class="post-header-tag">
             
             
-            <li><a href="/tags/Hexo">Hexo</a></li>
+            <li><a href="/tags/AIO">AIO</a></li>
             
-            <li><a href="/tags/Quiet">Quiet</a></li>
+            <li><a href="/tags/通讯内核">通讯内核</a></li>
             
-            <li><a href="/tags/主题">主题</a></li>
+            <li><a href="/tags/性能小怪兽">性能小怪兽</a></li>
             
-            <li><a href="/tags/静态主题">静态主题</a></li>
+            <li><a href="/tags/TCP编程">TCP编程</a></li>
+            
+            <li><a href="/tags/Java网络编程">Java网络编程</a></li>
             
             
         </ul>
@@ -322,7 +324,7 @@
   <div id="article" class="post-content-info">
     
 
-    <h1 id="aio-socket-使用文档"><a href="#aio-socket-使用文档" class="headerlink" title="aio-socket 使用文档"></a>aio-socket 使用文档</h1><h2 id="快速开始"><a href="#快速开始" class="headerlink" title="快速开始"></a>快速开始</h2><p>IDEA 新建Maven空项目；file-&gt;new -&gt;maven -&gt; finish</p>
+    <h1 id="aio-socket-使用文档"><a href="#aio-socket-使用文档" class="headerlink" title="aio-socket 使用文档"></a>aio-socket 使用文档</h1><h2 id="快速开始"><a href="#快速开始" class="headerlink" title="快速开始"></a>快速开始</h2><p>IDEA 新建Maven空项目:File-&gt;New-&gt;Project…-&gt;Maven-&gt;Next-&gt;Finish</p>
 <h3 id="引入Maven"><a href="#引入Maven" class="headerlink" title="引入Maven"></a>引入Maven</h3><pre><code>&lt;dependency&gt;
   &lt;groupId&gt;io.github.mxd888.socket&lt;/groupId&gt;
   &lt;artifactId&gt;aio-socket-kernel&lt;/artifactId&gt;
@@ -346,7 +348,7 @@
     &#125;
 &#125;
 </code></pre>
-<h3 id="新建MyHandler并实现接口AioHandler"><a href="#新建MyHandler并实现接口AioHandler" class="headerlink" title="新建MyHandler并实现接口AioHandler"></a>新建MyHandler并实现接口AioHandler</h3><pre><code class="java">public class MyHandler implements AioHandler &#123;
+<h3 id="新建DemoHandler并实现接口AioHandler"><a href="#新建DemoHandler并实现接口AioHandler" class="headerlink" title="新建DemoHandler并实现接口AioHandler"></a>新建DemoHandler并实现接口AioHandler</h3><pre><code class="java">public class DemoHandler implements AioHandler &#123;
 
     @Override
     public Packet handle(ChannelContext channelContext, Packet packet) &#123;
@@ -367,13 +369,14 @@
             buffer.reset();
             return null;
         &#125;
-        return new DemoPacket(new String(b));
+        return new DemoPacket(new String(b, StandardCharsets.UTF_8));
     &#125;
 
     @Override
     public void encode(Packet packet, ChannelContext channelContext) &#123;
         if (packet instanceof DemoPacket) &#123;
             DemoPacket demoPacket = (DemoPacket) packet;
+            // 自定义协议
             WriteBuffer writeBuffer = channelContext.getWriteBuffer();
             try &#123;
                 writeBuffer.writeInt(demoPacket.getData().getBytes().length);
@@ -383,38 +386,9 @@
             &#125;
         &#125;
     &#125;
-
-    @Override
-    public void stateEvent(ChannelContext channelContext, StateMachineEnum stateMachineEnum, Throwable throwable) &#123;
-        switch (stateMachineEnum)&#123;
-            case DECODE_EXCEPTION:
-                System.out.println(&quot;解码异常&quot;);
-                throwable.printStackTrace();
-                break;
-            case PROCESS_EXCEPTION:
-                System.out.println(&quot;处理异常&quot;);
-                break;
-            case INPUT_SHUTDOWN:
-                System.out.println(&quot;输入流已关闭&quot;);
-                break;
-            case REJECT_ACCEPT:
-                System.out.println(&quot;超过负载，拒绝连接&quot;);
-                break;
-            case CHANNEL_CLOSED:
-                System.out.println(&quot;TCPChannelContext 已经关闭&quot;);
-                break;
-            case INPUT_EXCEPTION:
-                System.out.println(&quot;INPUT_EXCEPTION 异常&quot;);
-                break;
-            case OUTPUT_EXCEPTION:
-                System.out.println(&quot;OUTPUT_EXCEPTION 异常&quot;);
-                break;
-        &#125;
-    &#125;
 &#125;
 </code></pre>
-<h3 id="新建ServerHandler并继承MyHandler"><a href="#新建ServerHandler并继承MyHandler" class="headerlink" title="新建ServerHandler并继承MyHandler"></a>新建ServerHandler并继承MyHandler</h3><pre><code class="java">public class ServerHandler extends MyHandler &#123;
-
+<h3 id="新建ServerHandler并继承DemoHandler"><a href="#新建ServerHandler并继承DemoHandler" class="headerlink" title="新建ServerHandler并继承DemoHandler"></a>新建ServerHandler并继承DemoHandler</h3><pre><code class="java">public class ServerHandler extends DemoHandler &#123;
     @Override
     public Packet handle(ChannelContext channelContext, Packet packet) &#123;
         if (packet instanceof DemoPacket) &#123;
@@ -424,277 +398,49 @@
     &#125;
 &#125;
 </code></pre>
-<h3 id="新建Server启动类"><a href="#新建Server启动类" class="headerlink" title="新建Server启动类"></a>新建Server启动类</h3><pre><code class="java">public static void main(String[] args) &#123;
+<h3 id="新建Server启动类"><a href="#新建Server启动类" class="headerlink" title="新建Server启动类"></a>新建Server启动类</h3><pre><code class="java">public class Server &#123;
+
+    public static void main(String[] args) &#123;
 
         ServerBootstrap bootstrap = new ServerBootstrap(&quot;localhost&quot;, 8888, new ServerHandler());
-        bootstrap.setMemoryPoolFactory(() -&gt; new MemoryPool(10 * 1024 * 1024, 10, true))
-                .setReadBufferSize(1024 * 1024)
-                .setWriteBufferSize(1024 * 4, 512)
+        bootstrap.setMemoryPoolFactory(() -&gt; new MemoryPool(2 * 1024 * 1024, 2, true))
+                .setReadBufferSize(1024 * 2)
+                .setWriteBufferSize(1024 * 2, 512)
                 .start();
-
     &#125;
+&#125;
 </code></pre>
-<h3 id="新建ClientHandler并继承MyHandler"><a href="#新建ClientHandler并继承MyHandler" class="headerlink" title="新建ClientHandler并继承MyHandler"></a>新建ClientHandler并继承MyHandler</h3><pre><code class="java">public class ClientHandler extends MyHandler &#123;
+<h3 id="新建ClientHandler并继承DemoHandler"><a href="#新建ClientHandler并继承DemoHandler" class="headerlink" title="新建ClientHandler并继承DemoHandler"></a>新建ClientHandler并继承DemoHandler</h3><pre><code class="java">public class ClientHandler extends DemoHandler &#123;
 
     @Override
     public Packet handle(ChannelContext channelContext, Packet packet) &#123;
+        if (packet instanceof DemoPacket) &#123;
+            DemoPacket packet1 = (DemoPacket) packet;
+            System.out.println(&quot;收到消息：&quot; + packet1.getData());
+        &#125;
         return null;
     &#125;
 &#125;
 </code></pre>
 <h3 id="新建Client启动类"><a href="#新建Client启动类" class="headerlink" title="新建Client启动类"></a>新建Client启动类</h3><pre><code class="java">public class Client &#123;
 
-    public static void main(String[] args) throws IOException &#123;
+    public static void main(String[] args) throws IOException, InterruptedException &#123;
+
         DemoPacket demoPacket = new DemoPacket(&quot;hello aio-socket&quot;);
         ClientBootstrap bootstrap = new ClientBootstrap(&quot;localhost&quot;, 8888, new ClientHandler());
-                bootstrap.setBufferFactory(() -&gt; new MemoryPool(32 * 1024 * 1024, 10, true))
-                        .setReadBufferSize(1024 * 1024)
-                        .setWriteBufferSize(1024 * 1024, 512);
-        ChannelContext start = bootstrap.start();
-        Aio.send(start, demoPacket);
+        ChannelContext channelContext = bootstrap.setBufferFactory(() -&gt; new MemoryPool(1024 * 1024, 1, true))
+                .setReadBufferSize(1024 * 2)
+                .setWriteBufferSize(1024 * 2, 512)
+                .start();
+        // 发送消息
+        Aio.send(channelContext, demoPacket);
+        Thread.sleep(1000);
+        // 关机
+        bootstrap.shutdown();
     &#125;
 &#125;
 </code></pre>
-<h2 id="高级使用"><a href="#高级使用" class="headerlink" title="高级使用"></a>高级使用</h2><p>aio-socket通过插件实现监听，自定义插件继承抽象插件即可</p>
-<h4 id="测试Java"><a href="#测试Java" class="headerlink" title="测试Java"></a>测试Java</h4><pre><code class="java">package io.github.mxd888.socket.utils.queue;
-
-import io.github.mxd888.socket.utils.ThreadUtils;
-import io.github.mxd888.socket.utils.pool.thread.AbstractQueueRunnable;
-
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.atomic.LongAdder;
-
-/**
- * 测试AioFullWaitQueue的性能；您如果有兴趣也可以实现接口FullWaitQueue来替换掉aio-socket自带的AioFullWaitQueue
- *
- * 测试参数：
- *      消息存放者： 10
- *      消息处理者： 1
- *      总消息：    消息存放者 * 1百万
- *
- * 作者MDong 测试结果：
- *      执行时间：1638 微秒
- *      存取消息数量：10000000
- *      约：500万/second
- *
- * 硬件参数：PC(CPU: Intel(R) Core(TM) i7-9700 @ 3.00GHz; Memory: 16GB; 无固态; 机械盘: TOSHIBA DT01ACA200 联想硬盘)
- *
- * @author MDong
- * @version 2.10.1.v20211002-RELEASE
- */
-public class AioFullWaitQueueTest &#123;
-
-    /**
-     * 生产者数量
-     */
-    private static final int offerThreadNum = 10;
-
-    /**
-     * 消费者数量
-     */
-    private static final int processThreadNum = 1;
-
-    /**
-     * 一百万常数
-     */
-    private static  final int ONE_MILLION = 1000000;
-
-    /**
-     * 总消息量：生产者数量 * 一百万
-     */
-    private static final int MsgTotalNum = offerThreadNum * ONE_MILLION;
-
-    /**
-     * 已处理消息数量
-     */
-    private static final LongAdder processMsgNum = new LongAdder();
-
-    /**
-     * 程序计数器
-     */
-    private static final CountDownLatch l = new CountDownLatch(MsgTotalNum);
-
-    /**
-     * main方法：
-     *      1、测试aio-socket线程池性能、测试Java自带线程池性能  ***  不要同时打开  ***
-     *      2、author by MDong
-     *
-     * @param args                  启动参数，如 java -jar AioFullWaitQueueTest.jar args0 args1 ...
-     * @throws InterruptedException CountDownLatch wait超时异常
-     */
-    public static void main(String[] args) throws InterruptedException &#123;
-
-        // 队列默认消息体
-        String message = &quot;aio-socket ThreadPool&quot;;
-
-        // 满等待常数 达到该数字后；若入队；则等待
-        int capacity = 512;
-
-        // 建立aio-socket满等待队列
-        AioQueue&lt;String&gt; aioAioQueue = new AioFullWaitQueue&lt;&gt;(capacity);
-
-        // 测试(aio-socket 线程池 + aio-socket 满等待队列)性能
-        testAioExecutor(aioAioQueue, message);
-
-        // 测试(Java8 自带线程池 + aio-socket 满等待队列)性能
-//        testGroupExecutor(aioFullWaitQueue, message);
-    &#125;
-
-    private static void testGroupExecutor(AioQueue&lt;String&gt; aioAioQueue, String message)
-            throws InterruptedException &#123;
-        ExecutorService groupExecutor = ThreadUtils.getGroupExecutor(offerThreadNum + processThreadNum);
-        AddQueue addQueue = new AddQueue(message, aioAioQueue);
-        PollQueue pollQueue = new PollQueue(aioAioQueue);
-        // 计时开始
-        long start = System.currentTimeMillis();
-        // 启动消息提供者
-        for (int i = 0; i &lt; offerThreadNum; i++) &#123;
-            groupExecutor.execute(addQueue);
-        &#125;
-        // 启动消息消费者
-        for (int i = 0; i &lt; processThreadNum; i++) &#123;
-            groupExecutor.execute(pollQueue);
-        &#125;
-        l.await();
-        // 计时结束
-        long end = System.currentTimeMillis();
-        System.out.println(&quot;执行时间：&quot; + (end - start) + &quot;\r\n&quot; +
-                &quot;存取消息数量：&quot; + processMsgNum.longValue());
-        // 关闭线程池
-        groupExecutor.shutdown();
-    &#125;
-
-    private static void testAioExecutor(AioQueue&lt;String&gt; aioAioQueue, String message)
-            throws InterruptedException &#123;
-        ExecutorService aioExecutor = ThreadUtils.getAioExecutor();
-        AioPollQueue synPollQueue = new AioPollQueue(aioAioQueue, aioExecutor);
-        // 计时开始
-        long start = System.currentTimeMillis();
-        // 启动消息提供者
-        for (int i = 0; i &lt; offerThreadNum; i++) &#123;
-            new AioAddQueue(message, aioExecutor, synPollQueue).execute();
-        &#125;
-        // 启动消息消费者
-        // 消费者有生产者自动唤醒
-        l.await();
-        // 计时结束
-        long end = System.currentTimeMillis();
-        System.out.println(&quot;执行时间：&quot; + (end - start) + &quot;\r\n&quot; +
-                &quot;存取消息数量：&quot; + processMsgNum.longValue());
-        // 关闭线程池
-        aioExecutor.shutdown();
-    &#125;
-
-    /**
-     * 生产者Java对象
-     */
-    static class AddQueue implements Runnable&#123;
-
-        String s;
-
-        AioQueue&lt;String&gt; queue;
-
-        public AddQueue(String s, AioQueue&lt;String&gt; queue) &#123;
-            this.s = s;
-            this.queue = queue;
-        &#125;
-
-        @Override
-        public void run() &#123;
-            for (int i = 0; i &lt; ONE_MILLION; i++) &#123;
-                queue.offer(s);
-            &#125;
-        &#125;
-    &#125;
-
-    /**
-     * 消费者Java对象
-     */
-    static class PollQueue implements Runnable &#123;
-
-        AioQueue&lt;String&gt; queue;
-
-        public PollQueue(AioQueue&lt;String&gt; queue) &#123;
-            this.queue = queue;
-        &#125;
-
-        @Override
-        public void run() &#123;
-            int i = 0;
-            while (!queue.isEmpty() || i &lt; MsgTotalNum) &#123;
-                String poll = queue.poll();
-                if (poll != null &amp;&amp; poll.length() &gt; 0) &#123;
-                    processMsgNum.increment();
-                    l.countDown();
-                    i++;
-                &#125;
-            &#125;
-        &#125;
-    &#125;
-
-    /**
-     * 同步生产者Java对象
-     */
-    static class AioAddQueue extends AbstractQueueRunnable&lt;String&gt;&#123;
-
-        String s;
-
-        AbstractQueueRunnable&lt;String&gt; aioQueue;
-
-        public AioAddQueue(String s, Executor executor, AbstractQueueRunnable&lt;String&gt; pollQueue) &#123;
-            super(executor);
-            this.s = s;
-            this.aioQueue = pollQueue;
-        &#125;
-
-        @Override
-        public AioQueue&lt;String&gt; getMsgQueue() &#123;
-            return null;
-        &#125;
-
-        @Override
-        public void runTask() &#123;
-            for (int i = 0; i &lt; ONE_MILLION; i++) &#123;
-                aioQueue.addMsg(s);
-                aioQueue.execute();
-            &#125;
-        &#125;
-    &#125;
-
-    /**
-     * 同步消费者Java对象
-     */
-    static class AioPollQueue extends AbstractQueueRunnable&lt;String&gt; &#123;
-
-        AioQueue&lt;String&gt; queue;
-
-        public AioPollQueue(AioQueue&lt;String&gt; queue, Executor executor) &#123;
-            super(executor);
-            this.queue = queue;
-        &#125;
-
-        @Override
-        public AioQueue&lt;String&gt; getMsgQueue() &#123;
-            return queue;
-        &#125;
-
-        @Override
-        public void runTask() &#123;
-            if (queue.isEmpty()) &#123;
-                return;
-            &#125;
-            while (queue.poll() != null) &#123;
-                processMsgNum.increment();
-                l.countDown();
-            &#125;
-        &#125;
-    &#125;
-
-
-&#125;
-</code></pre>
+<h2 id="高级使用"><a href="#高级使用" class="headerlink" title="高级使用"></a>高级使用</h2><p>尽情期待</p>
 
   </div>
   <div id=""></div>
